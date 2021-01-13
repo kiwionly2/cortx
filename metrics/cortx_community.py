@@ -223,7 +223,8 @@ class CortxPerson:
 
 class CortxCommunity:
   pickle_file = COMMUNITY_PICKLE 
-  allowed_types = set(['Bot', 'CORTX Team', 'Innersource', 'Hackathon', 'External','Mannequin','EU R&D'])
+  allowed_types  = set(['External','Innersource','Hackathon','EU R&D','Bot', 'CORTX Team', 'Mannequin'])
+  external_types = set(['External','Innersource','Hackathon','EU R&D'])
 
   def __init__(self):
     try:
@@ -233,9 +234,12 @@ class CortxCommunity:
     except FileNotFoundError:
       self.people = {} 
 
+  def external_type(self,Type):
+    return Type in self.external_types
+
   def is_external(self,login):
     Type = self.get_type(login)
-    return Type in set(['External','Innersource','Hackathon','EU R&D'])
+    return self.external_type(Type)
 
   def get_types(self):
     return self.allowed_types
@@ -313,6 +317,17 @@ def check_rate_limit():
   r = requests.get(u, auth=(uid,oath))
   js = r.json()
   return js
+
+
+def avoid_rate_limiting(gh):
+  (remaining,total) = gh.rate_limiting
+  if remaining < 10:
+    reset = gh.rate_limiting_resettime
+    sleep = reset - time.time()
+    if(sleep > 0):
+      sleep = int(sleep) + 5 # sleep a bit long to be extra safe
+      print("Need to sleep %d seconds until %d" % (int(sleep),reset))
+      time.sleep(sleep)
 
 def ensure_rate_limit(r):
   if int(r.headers['X-RateLimit-Remaining']) <= 2:  # try early just to give some buffer
